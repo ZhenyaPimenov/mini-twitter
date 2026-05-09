@@ -124,8 +124,17 @@ export default async function TweetsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Tweets</h1>
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link
+            href="/"
+            className="text-sm text-blue-400 hover:text-blue-300 transition"
+          >
+            ← Home
+          </Link>
+
+          <h1 className="text-3xl font-bold mt-2">Tweets</h1>
+        </div>
 
         {currentUser ? (
           <a

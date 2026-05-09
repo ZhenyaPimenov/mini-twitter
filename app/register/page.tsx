@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
+import { getCurrentUser } from "@/lib/auth/session";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 type RegisterPageProps = {
@@ -17,6 +19,12 @@ const registerErrors: Record<string, string> = {
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const currentUser = await getCurrentUser();
+
+  if (currentUser) {
+    redirect("/tweets");
+  }
+
   const errorCode = (await searchParams)?.error;
   const errorMessage = errorCode ? registerErrors[errorCode] : null;
 
@@ -67,6 +75,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   return (
     <main className="min-h-screen bg-zinc-950 text-white flex items-center justify-center px-6">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-8">
+        <Link
+          href="/"
+          className="mb-6 inline-block text-sm text-blue-400 hover:text-blue-300 transition"
+        >
+          ← Back home
+        </Link>
+
         <h1 className="text-3xl font-bold mb-2">Create account</h1>
 
         <p className="text-zinc-400 mb-8">
@@ -126,6 +141,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             Register
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-zinc-400">
+          Already have an account?{" "}
+          <Link href="/login" className="text-blue-400 hover:text-blue-300">
+            Log in
+          </Link>
+        </p>
       </div>
     </main>
   );
