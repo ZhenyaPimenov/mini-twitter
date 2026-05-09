@@ -9,15 +9,11 @@ export default async function TweetsPage() {
   async function createPost(formData: FormData) {
     "use server";
 
-    if (!currentUser) {
-      return;
-    }
+    if (!currentUser) return;
 
     const content = formData.get("content") as string;
 
-    if (!content.trim()) {
-      return;
-    }
+    if (!content.trim()) return;
 
     await prisma.post.create({
       data: {
@@ -29,45 +25,20 @@ export default async function TweetsPage() {
     revalidatePath("/tweets");
   }
 
-  async function deletePost(formData: FormData) {
-    "use server";
-
-    if (!currentUser) {
-      return;
-    }
-
-    const postId = Number(formData.get("postId"));
-
-    if (!postId) {
-      return;
-    }
-
-    await prisma.post.delete({
-      where: {
-        id: postId,
-      },
-    });
-
-    revalidatePath("/tweets");
-  }
-
   async function updatePost(formData: FormData) {
     "use server";
 
-    if (!currentUser) {
-      return;
-    }
+    if (!currentUser) return;
 
     const postId = Number(formData.get("postId"));
     const content = formData.get("content") as string;
 
-    if (!postId || !content.trim()) {
-      return;
-    }
+    if (!postId || !content.trim()) return;
 
     await prisma.post.update({
       where: {
         id: postId,
+        userId: currentUser.id,
       },
       data: {
         content,
@@ -77,7 +48,74 @@ export default async function TweetsPage() {
     revalidatePath("/tweets");
   }
 
+  async function deletePost(formData: FormData) {
+    "use server";
+
+    if (!currentUser) return;
+
+    const postId = Number(formData.get("postId"));
+
+    if (!postId) return;
+
+    await prisma.post.delete({
+      where: {
+        id: postId,
+        userId: currentUser.id,
+      },
+    });
+
+    revalidatePath("/tweets");
+  }
+
+  async function toggleLike(formData: FormData) {
+    "use server";
+
+    if (!currentUser) return;
+
+    const postId = Number(formData.get("postId"));
+
+    if (!postId) return;
+
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId: currentUser.id,
+          postId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      await prisma.like.delete({
+        where: {
+          id: existingLike.id,
+        },
+      });
+    } else {
+      await prisma.like.create({
+        data: {
+          userId: currentUser.id,
+          postId,
+        },
+      });
+    }
+
+    revalidatePath("/tweets");
+  }
+
   const posts = await prisma.post.findMany({
+    include: {
+      _count: {
+        select: {
+          likes: true,
+        },
+      },
+      likes: {
+        where: {
+          userId: currentUser?.id ?? -1,
+        },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -124,50 +162,72 @@ export default async function TweetsPage() {
       ) : (
         <div className="mb-6 border border-gray-700 bg-zinc-900 p-4 rounded-xl">
           <p className="text-gray-300">
-            You can view tweets as a guest, but you need to log in to post, edit, or delete tweets.
+            You can view tweets as a guest, but you need to log in to post, edit,
+            delete, or like tweets.
           </p>
         </div>
       )}
 
       <div className="space-y-4">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className="border border-gray-700 bg-zinc-900 p-4 rounded-xl"
-          >
-            {currentUser ? (
-              <form action={updatePost} className="space-y-2">
-                <input type="hidden" name="postId" value={post.id} />
+        {posts.map((post) => {
+          const isOwner = currentUser?.id === post.userId;
+          const isLiked = post.likes.length > 0;
 
-                <textarea
-                  name="content"
-                  defaultValue={post.content}
-                  className="w-full border border-gray-700 bg-zinc-800 text-white p-2 rounded"
-                />
+          return (
+            <div
+              key={post.id}
+              className="border border-gray-700 bg-zinc-900 p-4 rounded-xl"
+            >
+              {isOwner ? (
+                <form action={updatePost} className="space-y-2">
+                  <input type="hidden" name="postId" value={post.id} />
 
-                <button className="text-blue-400 hover:text-blue-300 text-sm">
-                  Update
-                </button>
-              </form>
-            ) : (
-              <p className="text-lg text-white">{post.content}</p>
-            )}
+                  <textarea
+                    name="content"
+                    defaultValue={post.content}
+                    className="w-full border border-gray-700 bg-zinc-800 text-white p-2 rounded"
+                  />
 
-            <p className="text-sm text-gray-400 mt-2">
-              {new Date(post.createdAt).toLocaleString()}
-            </p>
+                  <button className="text-blue-400 hover:text-blue-300 text-sm">
+                    Update
+                  </button>
+                </form>
+              ) : (
+                <p className="text-lg text-white">{post.content}</p>
+              )}
 
-            {currentUser && (
-              <form action={deletePost} className="mt-3">
-                <input type="hidden" name="postId" value={post.id} />
+              <p className="text-sm text-gray-400 mt-2">
+                {new Date(post.createdAt).toLocaleString()}
+              </p>
 
-                <button className="text-red-400 hover:text-red-300 text-sm">
-                  Delete
-                </button>
-              </form>
-            )}
-          </div>
-        ))}
+              <div className="flex items-center gap-4 mt-3">
+                {currentUser ? (
+                  <form action={toggleLike}>
+                    <input type="hidden" name="postId" value={post.id} />
+
+                    <button className="text-pink-400 hover:text-pink-300 text-sm">
+                      {isLiked ? "Unlike" : "Like"} ({post._count.likes})
+                    </button>
+                  </form>
+                ) : (
+                  <span className="text-sm text-gray-400">
+                    Likes: {post._count.likes}
+                  </span>
+                )}
+
+                {isOwner && (
+                  <form action={deletePost}>
+                    <input type="hidden" name="postId" value={post.id} />
+
+                    <button className="text-red-400 hover:text-red-300 text-sm">
+                      Delete
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
