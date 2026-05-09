@@ -49,6 +49,10 @@ export default async function TweetDetailsPage({
         </p>
 
         <p className="text-sm text-gray-400 mt-1">
+          Last updated: {new Date(post.updatedAt).toLocaleString()}
+        </p>
+
+        <p className="text-sm text-gray-400 mt-1">
           Likes: {post._count.likes}
         </p>
       </div>
