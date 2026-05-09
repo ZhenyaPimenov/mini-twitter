@@ -201,6 +201,13 @@ export default async function TweetsPage() {
               </p>
 
               <div className="flex items-center gap-4 mt-3">
+                <Link
+                  href={`/tweets/${post.id}`}
+                  className="text-green-400 hover:text-green-300 text-sm"
+                >
+                  View
+                </Link>
+
                 {currentUser ? (
                   <form action={toggleLike}>
                     <input type="hidden" name="postId" value={post.id} />
