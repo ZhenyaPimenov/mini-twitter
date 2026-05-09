@@ -39,7 +39,7 @@ export default async function TweetDetailsPage({
 
       <div className="mt-6 border border-gray-700 bg-zinc-900 p-6 rounded-xl">
         <p className="text-sm text-gray-400 mb-2">
-          Posted by {post.user.email}
+          Posted by {post.user.username ?? post.user.email}
         </p>
 
         <p className="text-xl text-white mb-4">{post.content}</p>

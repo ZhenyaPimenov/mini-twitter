@@ -115,6 +115,7 @@ export default async function TweetsPage() {
           userId: currentUser?.id ?? -1,
         },
       },
+      user: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -146,7 +147,7 @@ export default async function TweetsPage() {
       {currentUser ? (
         <form action={createPost} className="mb-6">
           <p className="text-sm text-gray-400 mb-2">
-            Logged in as {currentUser.email}
+            Logged in as {currentUser.username ?? currentUser.email}
           </p>
 
           <textarea
@@ -197,6 +198,7 @@ export default async function TweetsPage() {
               )}
 
               <p className="text-sm text-gray-400 mt-2">
+                Posted by {post.user.username ?? post.user.email} on{" "}
                 {new Date(post.createdAt).toLocaleString()}
               </p>
 

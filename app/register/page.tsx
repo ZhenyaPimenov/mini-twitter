@@ -6,16 +6,17 @@ export default function RegisterPage() {
   async function register(formData: FormData) {
     "use server";
 
+    const username = formData.get("username") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    if (!email || !password) {
+    if (!username.trim() || !email || !password) {
       return;
     }
 
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.user.findFirst({
       where: {
-        email,
+        OR: [{ email }, { username }],
       },
     });
 
@@ -25,6 +26,7 @@ export default function RegisterPage() {
 
     const user = await prisma.user.create({
       data: {
+        username: username.trim(),
         email,
         password,
       },
