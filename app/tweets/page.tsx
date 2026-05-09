@@ -57,12 +57,19 @@ export default async function TweetsPage() {
 
     if (!postId) return;
 
-    await prisma.post.delete({
-      where: {
-        id: postId,
-        userId: currentUser.id,
-      },
-    });
+    await prisma.$transaction([
+      prisma.like.deleteMany({
+        where: {
+          postId,
+        },
+      }),
+      prisma.post.delete({
+        where: {
+          id: postId,
+          userId: currentUser.id,
+        },
+      }),
+    ]);
 
     revalidatePath("/tweets");
   }
