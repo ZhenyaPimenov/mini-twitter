@@ -3,16 +3,40 @@ import { hashPassword } from "@/lib/auth/password";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default function RegisterPage() {
+type RegisterPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
+
+const registerErrors: Record<string, string> = {
+  "missing-fields": "Please fill in username, email, and password.",
+  "invalid-email": "Please enter a valid email address.",
+  "short-password": "Password must be at least 6 characters long.",
+  "user-exists": "A user with this email or username already exists.",
+};
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const errorCode = (await searchParams)?.error;
+  const errorMessage = errorCode ? registerErrors[errorCode] : null;
+
   async function register(formData: FormData) {
     "use server";
 
-    const username = formData.get("username") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const username = String(formData.get("username") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
 
-    if (!username.trim() || !email || !password) {
-      return;
+    if (!username || !email || !password) {
+      redirect("/register?error=missing-fields");
+    }
+
+    if (!email.includes("@")) {
+      redirect("/register?error=invalid-email");
+    }
+
+    if (password.length < 6) {
+      redirect("/register?error=short-password");
     }
 
     const existingUser = await prisma.user.findFirst({
@@ -22,12 +46,12 @@ export default function RegisterPage() {
     });
 
     if (existingUser) {
-      return;
+      redirect("/register?error=user-exists");
     }
 
     const user = await prisma.user.create({
       data: {
-        username: username.trim(),
+        username,
         email,
         password: hashPassword(password),
       },
@@ -48,6 +72,12 @@ export default function RegisterPage() {
         <p className="text-zinc-400 mb-8">
           Join Mini Twitter and start sharing your thoughts.
         </p>
+
+        {errorMessage && (
+          <p className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {errorMessage}
+          </p>
+        )}
 
         <form action={register} className="space-y-5">
           <div>

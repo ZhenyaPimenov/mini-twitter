@@ -7,15 +7,29 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+  }>;
+};
+
+const loginErrors: Record<string, string> = {
+  "missing-fields": "Please enter your email and password.",
+  "invalid-credentials": "Email or password is incorrect.",
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const errorCode = (await searchParams)?.error;
+  const errorMessage = errorCode ? loginErrors[errorCode] : null;
+
   async function login(formData: FormData) {
     "use server";
 
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
 
     if (!email || !password) {
-      return;
+      redirect("/login?error=missing-fields");
     }
 
     const user = await prisma.user.findUnique({
@@ -25,11 +39,11 @@ export default function LoginPage() {
     });
 
     if (!user) {
-      return;
+      redirect("/login?error=invalid-credentials");
     }
 
     if (!verifyPassword(password, user.password)) {
-      return;
+      redirect("/login?error=invalid-credentials");
     }
 
     if (!isHashedPassword(user.password)) {
@@ -58,6 +72,12 @@ export default function LoginPage() {
         <p className="text-zinc-400 mb-8">
           Welcome back to Mini Twitter.
         </p>
+
+        {errorMessage && (
+          <p className="mb-5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {errorMessage}
+          </p>
+        )}
 
         <form action={login} className="space-y-5">
           <div>
