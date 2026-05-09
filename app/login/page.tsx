@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import {
+  hashPassword,
+  isHashedPassword,
+  verifyPassword,
+} from "@/lib/auth/password";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -23,8 +28,19 @@ export default function LoginPage() {
       return;
     }
 
-    if (user.password !== password) {
+    if (!verifyPassword(password, user.password)) {
       return;
+    }
+
+    if (!isHashedPassword(user.password)) {
+      await prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          password: hashPassword(password),
+        },
+      });
     }
 
     const cookieStore = await cookies();

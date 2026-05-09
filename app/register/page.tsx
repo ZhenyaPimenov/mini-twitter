@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth/password";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -28,7 +29,7 @@ export default function RegisterPage() {
       data: {
         username: username.trim(),
         email,
-        password,
+        password: hashPassword(password),
       },
     });
 
