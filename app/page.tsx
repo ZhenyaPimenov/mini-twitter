@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
     return (
         <main className="min-h-screen bg-zinc-950 text-white">
@@ -7,13 +9,19 @@ export default function HomePage() {
                     <h1 className="text-3xl font-bold">Mini Twitter</h1>
 
                     <div className="flex gap-4">
-                        <button className="bg-white text-black px-4 py-2 rounded-lg font-medium">
+                        <Link
+                            href="/login"
+                            className="bg-white text-black px-4 py-2 rounded-lg font-medium"
+                        >
                             Login
-                        </button>
+                        </Link>
 
-                        <button className="border border-white px-4 py-2 rounded-lg font-medium">
+                        <Link
+                            href="/register"
+                            className="border border-white px-4 py-2 rounded-lg font-medium"
+                        >
                             Register
-                        </button>
+                        </Link>
                     </div>
                 </nav>
 
