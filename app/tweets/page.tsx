@@ -8,8 +8,11 @@ import { redirect } from "next/navigation";
 type TweetsPageProps = {
   searchParams?: Promise<{
     success?: string;
+    topic?: string;
   }>;
 };
+
+const TWEET_TOPICS = ["General", "Study", "News", "Project", "Personal"];
 
 const tweetSuccessMessages: Record<string, string> = {
   created: "Tweet posted.",
@@ -23,6 +26,8 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
   const successMessage = query?.success
     ? tweetSuccessMessages[query.success]
     : null;
+  const selectedTopic =
+    query?.topic && TWEET_TOPICS.includes(query.topic) ? query.topic : null;
 
   async function deletePost(formData: FormData) {
     "use server";
@@ -32,6 +37,10 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
     }
 
     const postId = Number(formData.get("postId"));
+    const currentTopic = String(formData.get("topic") ?? "");
+    const successRedirect = currentTopic
+      ? `/tweets?topic=${encodeURIComponent(currentTopic)}&success=deleted`
+      : "/tweets?success=deleted";
 
     if (!postId) return;
 
@@ -50,7 +59,7 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
     ]);
 
     revalidatePath("/tweets");
-    redirect("/tweets?success=deleted");
+    redirect(successRedirect);
   }
 
   async function toggleLike(formData: FormData) {
@@ -59,6 +68,7 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
     if (!currentUser) return;
 
     const postId = Number(formData.get("postId"));
+    const currentTopic = String(formData.get("topic") ?? "");
 
     if (!postId) return;
 
@@ -87,9 +97,17 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
     }
 
     revalidatePath("/tweets");
+    if (currentTopic) {
+      redirect(`/tweets?topic=${encodeURIComponent(currentTopic)}`);
+    }
   }
 
   const posts = await prisma.post.findMany({
+    where: selectedTopic
+      ? {
+          topic: selectedTopic,
+        }
+      : undefined,
     include: {
       _count: {
         select: {
@@ -154,6 +172,33 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
         </div>
       )}
 
+      <div className="mb-6 flex flex-wrap gap-3">
+        <Link
+          href="/tweets"
+          className={`rounded-lg border px-4 py-2 text-sm transition ${
+            !selectedTopic
+              ? "border-blue-500 bg-blue-500 text-white"
+              : "border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white"
+          }`}
+        >
+          All
+        </Link>
+
+        {TWEET_TOPICS.map((topic) => (
+          <Link
+            key={topic}
+            href={`/tweets?topic=${encodeURIComponent(topic)}`}
+            className={`rounded-lg border px-4 py-2 text-sm transition ${
+              selectedTopic === topic
+                ? "border-blue-500 bg-blue-500 text-white"
+                : "border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white"
+            }`}
+          >
+            {topic}
+          </Link>
+        ))}
+      </div>
+
       {currentUser ? (
         <div className="mb-6 rounded-xl border border-gray-700 bg-zinc-900 p-4">
           <p className="text-sm text-gray-400 mb-2">
@@ -176,7 +221,9 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
       <div className="space-y-4">
         {posts.length === 0 && (
           <div className="rounded-xl border border-gray-700 bg-zinc-900 p-6 text-center text-gray-300">
-            No tweets yet. Be the first to post something.
+            {selectedTopic
+              ? `No ${selectedTopic.toLowerCase()} tweets yet.`
+              : "No tweets yet. Be the first to post something."}
           </div>
         )}
 
@@ -219,6 +266,9 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
                 {currentUser ? (
                   <form action={toggleLike}>
                     <input type="hidden" name="postId" value={post.id} />
+                    {selectedTopic && (
+                      <input type="hidden" name="topic" value={selectedTopic} />
+                    )}
 
                     <button className="text-pink-400 hover:text-pink-300 text-sm">
                       {isLiked ? "Unlike" : "Like"} ({post._count.likes})
@@ -241,6 +291,13 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
 
                     <form action={deletePost}>
                       <input type="hidden" name="postId" value={post.id} />
+                      {selectedTopic && (
+                        <input
+                          type="hidden"
+                          name="topic"
+                          value={selectedTopic}
+                        />
+                      )}
 
                       <DeleteTweetButton className="text-red-400 hover:text-red-300 text-sm" />
                     </form>
