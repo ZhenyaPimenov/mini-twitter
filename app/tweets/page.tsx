@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import DeleteTweetButton from "@/components/DeleteTweetButton";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -318,9 +319,7 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
                   <form action={deletePost}>
                     <input type="hidden" name="postId" value={post.id} />
 
-                    <button className="text-red-400 hover:text-red-300 text-sm">
-                      Delete
-                    </button>
+                    <DeleteTweetButton className="text-red-400 hover:text-red-300 text-sm" />
                   </form>
                 )}
               </div>
