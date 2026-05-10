@@ -15,6 +15,7 @@ tweet details.
 - Dedicated tweet details page
 - Protected edit and delete actions for tweet owners
 - Like and unlike system
+- Follow and unfollow other users
 - User profile page with personal tweet statistics
 - Tweet title, topic, mood, content, timestamps, and like count
 - Form validation with user-friendly error messages
@@ -46,6 +47,7 @@ The app uses three main Prisma models:
 - `User` stores account data, username, email, hashed password, and created date.
 - `Post` stores tweet title, content, topic, mood, timestamps, and owner.
 - `Like` stores which user liked which tweet.
+- `Follow` stores follower and following relationships between users.
 
 ## Routes
 
@@ -60,6 +62,7 @@ The app uses three main Prisma models:
 | `/tweets/[id]` | View tweet details |
 | `/tweets/[id]/edit` | Edit a tweet owned by the current user |
 | `/profile` | View current user profile and personal tweets |
+| `/users/[id]` | View another user's profile and follow or unfollow them |
 
 ## Getting Started
 
@@ -118,5 +121,5 @@ Screenshots should be added before submission to show the main user flow:
 ## Notes
 
 Only logged-in users can create tweets, like tweets, edit their own tweets, and
-delete their own tweets. Guests can still view the public tweet list and tweet
-details.
+delete their own tweets. Logged-in users can also follow or unfollow other users.
+Guests can still view the public tweet list, tweet details, and public profiles.

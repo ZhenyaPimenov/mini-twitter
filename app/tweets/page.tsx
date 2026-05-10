@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import DeleteTweetButton from "@/components/DeleteTweetButton";
+import FollowButton from "@/components/FollowButton";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -119,7 +120,15 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
           userId: currentUser?.id ?? -1,
         },
       },
-      user: true,
+      user: {
+        include: {
+          followers: {
+            where: {
+              followerId: currentUser?.id ?? -1,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -230,6 +239,10 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
         {posts.map((post) => {
           const isOwner = currentUser?.id === post.userId;
           const isLiked = post.likes.length > 0;
+          const isFollowingAuthor = post.user.followers.length > 0;
+          const redirectTo = selectedTopic
+            ? `/tweets?topic=${encodeURIComponent(selectedTopic)}`
+            : "/tweets";
 
           return (
             <div
@@ -255,7 +268,14 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
               <p className="mt-2 text-gray-200">{post.content}</p>
 
               <p className="text-sm text-gray-400 mt-2">
-                Posted by {post.user.username ?? post.user.email} on{" "}
+                Posted by{" "}
+                <Link
+                  href={`/users/${post.userId}`}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  {post.user.username ?? post.user.email}
+                </Link>{" "}
+                on{" "}
                 {new Date(post.createdAt).toLocaleString()}
               </p>
 
@@ -266,6 +286,15 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
                 >
                   View
                 </Link>
+
+                {currentUser && !isOwner && (
+                  <FollowButton
+                    userId={post.userId}
+                    isFollowing={isFollowingAuthor}
+                    redirectTo={redirectTo}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm"
+                  />
+                )}
 
                 {currentUser ? (
                   <form action={toggleLike}>

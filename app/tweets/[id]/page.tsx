@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import DeleteTweetButton from "@/components/DeleteTweetButton";
+import FollowButton from "@/components/FollowButton";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -101,7 +102,15 @@ export default async function TweetDetailsPage({
       id: postId,
     },
     include: {
-      user: true,
+      user: {
+        include: {
+          followers: {
+            where: {
+              followerId: currentUser?.id ?? -1,
+            },
+          },
+        },
+      },
       _count: {
         select: {
           likes: true,
@@ -121,6 +130,7 @@ export default async function TweetDetailsPage({
 
   const isOwner = currentUser?.id === post.userId;
   const isLiked = post.likes.length > 0;
+  const isFollowingAuthor = post.user.followers.length > 0;
 
   return (
     <main className="max-w-2xl mx-auto p-6">
@@ -142,7 +152,13 @@ export default async function TweetDetailsPage({
         )}
 
         <p className="text-sm text-gray-400 mb-2">
-          Posted by {post.user.username ?? post.user.email}
+          Posted by{" "}
+          <Link
+            href={`/users/${post.userId}`}
+            className="text-blue-400 hover:text-blue-300"
+          >
+            {post.user.username ?? post.user.email}
+          </Link>
         </p>
 
         <div className="mb-3 flex flex-wrap gap-3">
@@ -182,6 +198,15 @@ export default async function TweetDetailsPage({
             <Link href="/login" className="text-sm text-blue-400 hover:text-blue-300">
               Log in to like
             </Link>
+          )}
+
+          {currentUser && !isOwner && (
+            <FollowButton
+              userId={post.userId}
+              isFollowing={isFollowingAuthor}
+              redirectTo={`/tweets/${postId}`}
+              className="text-sm text-cyan-400 hover:text-cyan-300"
+            />
           )}
 
           {isOwner && (

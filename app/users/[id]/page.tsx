@@ -1,53 +1,69 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import FollowButton from "@/components/FollowButton";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-export default async function ProfilePage() {
-  const currentUser = await getCurrentUser();
+type UserProfilePageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
-  if (!currentUser) {
-    redirect("/login");
+export default async function UserProfilePage({ params }: UserProfilePageProps) {
+  const { id } = await params;
+  const userId = Number(id);
+
+  if (!Number.isInteger(userId)) {
+    notFound();
   }
 
-  const [posts, postCount, likeCount, followerCount, followingCount] =
-    await Promise.all([
-      prisma.post.findMany({
-        where: {
-          userId: currentUser.id,
-        },
-        include: {
-          _count: {
-            select: {
-              likes: true,
-            },
+  const currentUser = await getCurrentUser();
+
+  const [profileUser, posts] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        _count: {
+          select: {
+            posts: true,
+            followers: true,
+            following: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
+        followers: {
+          where: {
+            followerId: currentUser?.id ?? -1,
+          },
         },
-      }),
-      prisma.post.count({
-        where: {
-          userId: currentUser.id,
+      },
+    }),
+    prisma.post.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        _count: {
+          select: {
+            likes: true,
+          },
         },
-      }),
-      prisma.like.count({
-        where: {
-          userId: currentUser.id,
-        },
-      }),
-      prisma.follow.count({
-        where: {
-          followingId: currentUser.id,
-        },
-      }),
-      prisma.follow.count({
-        where: {
-          followerId: currentUser.id,
-        },
-      }),
-    ]);
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+  ]);
+
+  if (!profileUser) {
+    notFound();
+  }
+
+  const isOwnProfile = currentUser?.id === profileUser.id;
+  const isFollowing = profileUser.followers.length > 0;
+  const displayName = profileUser.username ?? profileUser.email;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -70,69 +86,68 @@ export default async function ProfilePage() {
               </Link>
             </div>
 
-            <h1 className="mt-3 text-3xl font-bold">My profile</h1>
+            <h1 className="mt-3 text-3xl font-bold">{displayName}</h1>
           </div>
 
-          <a
-            href="/logout"
-            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-          >
-            Logout
-          </a>
+          {currentUser ? (
+            !isOwnProfile && (
+              <FollowButton
+                userId={profileUser.id}
+                isFollowing={isFollowing}
+                redirectTo={`/users/${profileUser.id}`}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+              />
+            )
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+            >
+              Log in to follow
+            </Link>
+          )}
         </div>
 
         <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-sm text-zinc-400">Signed in as</p>
+          <p className="text-sm text-zinc-400">User profile</p>
 
-          <h2 className="mt-1 text-2xl font-semibold">
-            {currentUser.username ?? currentUser.email}
-          </h2>
+          <h2 className="mt-1 text-2xl font-semibold">{displayName}</h2>
 
-          <p className="mt-2 text-sm text-zinc-400">{currentUser.email}</p>
+          <p className="mt-2 text-sm text-zinc-400">{profileUser.email}</p>
 
           <p className="mt-1 text-sm text-zinc-500">
-            Joined {new Date(currentUser.createdAt).toLocaleDateString()}
+            Joined {new Date(profileUser.createdAt).toLocaleDateString()}
           </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="text-2xl font-bold">{postCount}</p>
-              <p className="text-sm text-zinc-400">Tweets posted</p>
+              <p className="text-2xl font-bold">{profileUser._count.posts}</p>
+              <p className="text-sm text-zinc-400">Tweets</p>
             </div>
 
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="text-2xl font-bold">{likeCount}</p>
-              <p className="text-sm text-zinc-400">Tweets liked</p>
-            </div>
-
-            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="text-2xl font-bold">{followerCount}</p>
+              <p className="text-2xl font-bold">
+                {profileUser._count.followers}
+              </p>
               <p className="text-sm text-zinc-400">Followers</p>
             </div>
 
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <p className="text-2xl font-bold">{followingCount}</p>
+              <p className="text-2xl font-bold">
+                {profileUser._count.following}
+              </p>
               <p className="text-sm text-zinc-400">Following</p>
             </div>
           </div>
         </section>
 
         <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold">My tweets</h2>
-
-            <Link
-              href="/tweets/new"
-              className="text-sm text-blue-400 transition hover:text-blue-300"
-            >
-              Create tweet
-            </Link>
-          </div>
+          <h2 className="mb-4 text-xl font-semibold">Tweets</h2>
 
           <div className="space-y-4">
             {posts.length === 0 && (
               <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-center text-zinc-300">
-                You have not posted any tweets yet.
+                This user has not posted any tweets yet.
               </div>
             )}
 
