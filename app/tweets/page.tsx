@@ -2,18 +2,52 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default async function TweetsPage() {
+type TweetsPageProps = {
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
+const MAX_TWEET_LENGTH = 280;
+
+const tweetErrors: Record<string, string> = {
+  "empty-tweet": "Tweet content cannot be empty.",
+  "long-tweet": `Tweets must be ${MAX_TWEET_LENGTH} characters or fewer.`,
+};
+
+const tweetSuccessMessages: Record<string, string> = {
+  created: "Tweet posted.",
+  updated: "Tweet updated.",
+  deleted: "Tweet deleted.",
+};
+
+export default async function TweetsPage({ searchParams }: TweetsPageProps) {
   const currentUser = await getCurrentUser();
+  const query = await searchParams;
+  const errorMessage = query?.error ? tweetErrors[query.error] : null;
+  const successMessage = query?.success
+    ? tweetSuccessMessages[query.success]
+    : null;
 
   async function createPost(formData: FormData) {
     "use server";
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      redirect("/login");
+    }
 
-    const content = formData.get("content") as string;
+    const content = String(formData.get("content") ?? "").trim();
 
-    if (!content.trim()) return;
+    if (!content) {
+      redirect("/tweets?error=empty-tweet");
+    }
+
+    if (content.length > MAX_TWEET_LENGTH) {
+      redirect("/tweets?error=long-tweet");
+    }
 
     await prisma.post.create({
       data: {
@@ -23,17 +57,28 @@ export default async function TweetsPage() {
     });
 
     revalidatePath("/tweets");
+    redirect("/tweets?success=created");
   }
 
   async function updatePost(formData: FormData) {
     "use server";
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      redirect("/login");
+    }
 
     const postId = Number(formData.get("postId"));
-    const content = formData.get("content") as string;
+    const content = String(formData.get("content") ?? "").trim();
 
-    if (!postId || !content.trim()) return;
+    if (!postId) return;
+
+    if (!content) {
+      redirect("/tweets?error=empty-tweet");
+    }
+
+    if (content.length > MAX_TWEET_LENGTH) {
+      redirect("/tweets?error=long-tweet");
+    }
 
     await prisma.post.update({
       where: {
@@ -46,12 +91,16 @@ export default async function TweetsPage() {
     });
 
     revalidatePath("/tweets");
+    revalidatePath(`/tweets/${postId}`);
+    redirect("/tweets?success=updated");
   }
 
   async function deletePost(formData: FormData) {
     "use server";
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      redirect("/login");
+    }
 
     const postId = Number(formData.get("postId"));
 
@@ -72,6 +121,7 @@ export default async function TweetsPage() {
     ]);
 
     revalidatePath("/tweets");
+    redirect("/tweets?success=deleted");
   }
 
   async function toggleLike(formData: FormData) {
@@ -160,6 +210,18 @@ export default async function TweetsPage() {
         )}
       </div>
 
+      {(errorMessage || successMessage) && (
+        <div
+          className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+            errorMessage
+              ? "border-red-500/40 bg-red-500/10 text-red-200"
+              : "border-green-500/40 bg-green-500/10 text-green-200"
+          }`}
+        >
+          {errorMessage ?? successMessage}
+        </div>
+      )}
+
       {currentUser ? (
         <form action={createPost} className="mb-6">
           <p className="text-sm text-gray-400 mb-2">
@@ -168,9 +230,14 @@ export default async function TweetsPage() {
 
           <textarea
             name="content"
+            maxLength={MAX_TWEET_LENGTH}
             className="w-full border border-gray-700 bg-zinc-900 text-white p-3 rounded"
             placeholder="What's happening?"
           />
+
+          <p className="mt-1 text-xs text-gray-500">
+            Maximum {MAX_TWEET_LENGTH} characters.
+          </p>
 
           <button className="bg-blue-500 text-white px-4 py-2 rounded mt-2">
             Post
@@ -186,6 +253,12 @@ export default async function TweetsPage() {
       )}
 
       <div className="space-y-4">
+        {posts.length === 0 && (
+          <div className="rounded-xl border border-gray-700 bg-zinc-900 p-6 text-center text-gray-300">
+            No tweets yet. Be the first to post something.
+          </div>
+        )}
+
         {posts.map((post) => {
           const isOwner = currentUser?.id === post.userId;
           const isLiked = post.likes.length > 0;
@@ -202,6 +275,7 @@ export default async function TweetsPage() {
                   <textarea
                     name="content"
                     defaultValue={post.content}
+                    maxLength={MAX_TWEET_LENGTH}
                     className="w-full border border-gray-700 bg-zinc-800 text-white p-2 rounded"
                   />
 

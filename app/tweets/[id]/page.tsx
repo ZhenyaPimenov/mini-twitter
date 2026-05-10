@@ -8,23 +8,52 @@ type TweetDetailsPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    error?: string;
+    success?: string;
+  }>;
+};
+
+const MAX_TWEET_LENGTH = 280;
+
+const tweetErrors: Record<string, string> = {
+  "empty-tweet": "Tweet content cannot be empty.",
+  "long-tweet": `Tweets must be ${MAX_TWEET_LENGTH} characters or fewer.`,
+};
+
+const tweetSuccessMessages: Record<string, string> = {
+  updated: "Tweet updated.",
 };
 
 export default async function TweetDetailsPage({
   params,
+  searchParams,
 }: TweetDetailsPageProps) {
   const { id } = await params;
+  const query = await searchParams;
   const currentUser = await getCurrentUser();
   const postId = Number(id);
+  const errorMessage = query?.error ? tweetErrors[query.error] : null;
+  const successMessage = query?.success
+    ? tweetSuccessMessages[query.success]
+    : null;
 
   async function updatePost(formData: FormData) {
     "use server";
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      redirect("/login");
+    }
 
     const content = String(formData.get("content") ?? "").trim();
 
-    if (!content) return;
+    if (!content) {
+      redirect(`/tweets/${postId}?error=empty-tweet`);
+    }
+
+    if (content.length > MAX_TWEET_LENGTH) {
+      redirect(`/tweets/${postId}?error=long-tweet`);
+    }
 
     await prisma.post.update({
       where: {
@@ -38,6 +67,7 @@ export default async function TweetDetailsPage({
 
     revalidatePath("/tweets");
     revalidatePath(`/tweets/${postId}`);
+    redirect(`/tweets/${postId}?success=updated`);
   }
 
   async function deletePost() {
@@ -60,7 +90,7 @@ export default async function TweetDetailsPage({
     ]);
 
     revalidatePath("/tweets");
-    redirect("/tweets");
+    redirect("/tweets?success=deleted");
   }
 
   async function toggleLike() {
@@ -129,6 +159,18 @@ export default async function TweetDetailsPage({
       </Link>
 
       <div className="mt-6 border border-gray-700 bg-zinc-900 p-6 rounded-xl">
+        {(errorMessage || successMessage) && (
+          <div
+            className={`mb-5 rounded-lg border px-4 py-3 text-sm ${
+              errorMessage
+                ? "border-red-500/40 bg-red-500/10 text-red-200"
+                : "border-green-500/40 bg-green-500/10 text-green-200"
+            }`}
+          >
+            {errorMessage ?? successMessage}
+          </div>
+        )}
+
         <p className="text-sm text-gray-400 mb-2">
           Posted by {post.user.username ?? post.user.email}
         </p>
@@ -138,8 +180,13 @@ export default async function TweetDetailsPage({
             <textarea
               name="content"
               defaultValue={post.content}
+              maxLength={MAX_TWEET_LENGTH}
               className="w-full rounded-lg border border-gray-700 bg-zinc-800 p-3 text-xl text-white"
             />
+
+            <p className="text-xs text-gray-500">
+              Maximum {MAX_TWEET_LENGTH} characters.
+            </p>
 
             <button className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
               Update tweet
