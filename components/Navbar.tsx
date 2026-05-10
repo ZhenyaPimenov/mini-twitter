@@ -20,6 +20,13 @@ export default async function Navbar() {
 
         {currentUser ? (
           <>
+            <Link
+              href="/profile"
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white"
+            >
+              Profile
+            </Link>
+
             <span className="max-w-56 truncate text-sm text-zinc-400">
               {currentUser.username ?? currentUser.email}
             </span>
