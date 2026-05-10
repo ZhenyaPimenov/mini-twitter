@@ -7,16 +7,8 @@ import { redirect } from "next/navigation";
 
 type TweetsPageProps = {
   searchParams?: Promise<{
-    error?: string;
     success?: string;
   }>;
-};
-
-const MAX_TWEET_LENGTH = 280;
-
-const tweetErrors: Record<string, string> = {
-  "empty-tweet": "Tweet content cannot be empty.",
-  "long-tweet": `Tweets must be ${MAX_TWEET_LENGTH} characters or fewer.`,
 };
 
 const tweetSuccessMessages: Record<string, string> = {
@@ -28,38 +20,9 @@ const tweetSuccessMessages: Record<string, string> = {
 export default async function TweetsPage({ searchParams }: TweetsPageProps) {
   const currentUser = await getCurrentUser();
   const query = await searchParams;
-  const errorMessage = query?.error ? tweetErrors[query.error] : null;
   const successMessage = query?.success
     ? tweetSuccessMessages[query.success]
     : null;
-
-  async function createPost(formData: FormData) {
-    "use server";
-
-    if (!currentUser) {
-      redirect("/login");
-    }
-
-    const content = String(formData.get("content") ?? "").trim();
-
-    if (!content) {
-      redirect("/tweets?error=empty-tweet");
-    }
-
-    if (content.length > MAX_TWEET_LENGTH) {
-      redirect("/tweets?error=long-tweet");
-    }
-
-    await prisma.post.create({
-      data: {
-        content,
-        userId: currentUser.id,
-      },
-    });
-
-    revalidatePath("/tweets");
-    redirect("/tweets?success=created");
-  }
 
   async function deletePost(formData: FormData) {
     "use server";
@@ -160,12 +123,21 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
         </div>
 
         {currentUser ? (
-          <a
-            href="/logout"
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition"
-          >
-            Logout
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/tweets/new"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition"
+            >
+              New tweet
+            </Link>
+
+            <a
+              href="/logout"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition"
+            >
+              Logout
+            </a>
+          </div>
         ) : (
           <Link
             href="/login"
@@ -176,39 +148,22 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
         )}
       </div>
 
-      {(errorMessage || successMessage) && (
-        <div
-          className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
-            errorMessage
-              ? "border-red-500/40 bg-red-500/10 text-red-200"
-              : "border-green-500/40 bg-green-500/10 text-green-200"
-          }`}
-        >
-          {errorMessage ?? successMessage}
+      {successMessage && (
+        <div className="mb-6 rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-200">
+          {successMessage}
         </div>
       )}
 
       {currentUser ? (
-        <form action={createPost} className="mb-6">
+        <div className="mb-6 rounded-xl border border-gray-700 bg-zinc-900 p-4">
           <p className="text-sm text-gray-400 mb-2">
             Logged in as {currentUser.username ?? currentUser.email}
           </p>
 
-          <textarea
-            name="content"
-            maxLength={MAX_TWEET_LENGTH}
-            className="w-full border border-gray-700 bg-zinc-900 text-white p-3 rounded"
-            placeholder="What's happening?"
-          />
-
-          <p className="mt-1 text-xs text-gray-500">
-            Maximum {MAX_TWEET_LENGTH} characters.
+          <p className="text-gray-300">
+            Use the New tweet button to share something.
           </p>
-
-          <button className="bg-blue-500 text-white px-4 py-2 rounded mt-2">
-            Post
-          </button>
-        </form>
+        </div>
       ) : (
         <div className="mb-6 border border-gray-700 bg-zinc-900 p-4 rounded-xl">
           <p className="text-gray-300">

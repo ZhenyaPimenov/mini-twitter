@@ -101,7 +101,7 @@ export default async function ProfilePage() {
             <h2 className="text-xl font-semibold">My tweets</h2>
 
             <Link
-              href="/tweets"
+              href="/tweets/new"
               className="text-sm text-blue-400 transition hover:text-blue-300"
             >
               Create tweet

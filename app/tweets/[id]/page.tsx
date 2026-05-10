@@ -23,6 +23,7 @@ const tweetErrors: Record<string, string> = {
 };
 
 const tweetSuccessMessages: Record<string, string> = {
+  created: "Tweet posted.",
   updated: "Tweet updated.",
 };
 
