@@ -189,7 +189,19 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
               key={post.id}
               className="border border-gray-700 bg-zinc-900 p-4 rounded-xl"
             >
-              <p className="text-lg text-white">{post.content}</p>
+              <div className="mb-3 flex flex-wrap items-center gap-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-blue-300">
+                  {post.topic}
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  {post._count.likes} likes
+                </p>
+              </div>
+
+              <h2 className="text-xl font-semibold text-white">{post.title}</h2>
+
+              <p className="mt-2 text-gray-200">{post.content}</p>
 
               <p className="text-sm text-gray-400 mt-2">
                 Posted by {post.user.username ?? post.user.email} on{" "}

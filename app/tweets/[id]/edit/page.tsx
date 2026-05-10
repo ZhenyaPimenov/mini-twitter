@@ -14,10 +14,15 @@ type EditTweetPageProps = {
 };
 
 const MAX_TWEET_LENGTH = 280;
+const MAX_TITLE_LENGTH = 80;
+const TWEET_TOPICS = ["General", "Study", "News", "Project", "Personal"];
 
 const tweetErrors: Record<string, string> = {
+  "empty-title": "Tweet title cannot be empty.",
+  "long-title": `Tweet title must be ${MAX_TITLE_LENGTH} characters or fewer.`,
   "empty-tweet": "Tweet content cannot be empty.",
   "long-tweet": `Tweets must be ${MAX_TWEET_LENGTH} characters or fewer.`,
+  "invalid-topic": "Please choose a valid topic.",
 };
 
 export default async function EditTweetPage({
@@ -57,7 +62,17 @@ export default async function EditTweetPage({
       redirect("/login");
     }
 
+    const title = String(formData.get("title") ?? "").trim();
     const content = String(formData.get("content") ?? "").trim();
+    const topic = String(formData.get("topic") ?? "").trim();
+
+    if (!title) {
+      redirect(`/tweets/${postId}/edit?error=empty-title`);
+    }
+
+    if (title.length > MAX_TITLE_LENGTH) {
+      redirect(`/tweets/${postId}/edit?error=long-title`);
+    }
 
     if (!content) {
       redirect(`/tweets/${postId}/edit?error=empty-tweet`);
@@ -67,13 +82,19 @@ export default async function EditTweetPage({
       redirect(`/tweets/${postId}/edit?error=long-tweet`);
     }
 
+    if (!TWEET_TOPICS.includes(topic)) {
+      redirect(`/tweets/${postId}/edit?error=invalid-topic`);
+    }
+
     await prisma.post.update({
       where: {
         id: postId,
         userId: user.id,
       },
       data: {
+        title,
         content,
+        topic,
       },
     });
 
@@ -116,6 +137,43 @@ export default async function EditTweetPage({
           )}
 
           <form action={updatePost} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="title" className="mb-2 block text-sm font-medium">
+                Title
+              </label>
+
+              <input
+                id="title"
+                name="title"
+                defaultValue={post.title}
+                maxLength={MAX_TITLE_LENGTH}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-blue-500"
+              />
+
+              <p className="mt-1 text-xs text-zinc-500">
+                Maximum {MAX_TITLE_LENGTH} characters.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="topic" className="mb-2 block text-sm font-medium">
+                Topic
+              </label>
+
+              <select
+                id="topic"
+                name="topic"
+                defaultValue={post.topic}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-blue-500"
+              >
+                {TWEET_TOPICS.map((topic) => (
+                  <option key={topic} value={topic}>
+                    {topic}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label htmlFor="content" className="mb-2 block text-sm font-medium">
                 Tweet content

@@ -20,7 +20,9 @@ model User {
 
 model Post {
   id        Int      @id @default(autoincrement())
+  title     String   @default("Untitled tweet")
   content   String
+  topic     String   @default("General")
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 

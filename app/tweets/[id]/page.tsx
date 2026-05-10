@@ -145,9 +145,15 @@ export default async function TweetDetailsPage({
           Posted by {post.user.username ?? post.user.email}
         </p>
 
-        <p className="text-xl text-white mb-4">{post.content}</p>
+        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-blue-300">
+          {post.topic}
+        </p>
 
-        <p className="text-sm text-gray-400">
+        <h1 className="text-3xl font-bold text-white">{post.title}</h1>
+
+        <p className="mt-4 text-xl text-white">{post.content}</p>
+
+        <p className="text-sm text-gray-400 mt-5">
           Created at: {new Date(post.createdAt).toLocaleString()}
         </p>
 

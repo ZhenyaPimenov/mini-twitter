@@ -120,7 +120,15 @@ export default async function ProfilePage() {
                 key={post.id}
                 className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
               >
-                <p className="text-white">{post.content}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-blue-300">
+                  {post.topic}
+                </p>
+
+                <h3 className="mt-2 text-lg font-semibold text-white">
+                  {post.title}
+                </h3>
+
+                <p className="mt-2 text-zinc-200">{post.content}</p>
 
                 <p className="mt-2 text-sm text-zinc-400">
                   {new Date(post.createdAt).toLocaleString()} ·{" "}
