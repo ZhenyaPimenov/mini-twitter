@@ -145,9 +145,15 @@ export default async function TweetDetailsPage({
           Posted by {post.user.username ?? post.user.email}
         </p>
 
-        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-blue-300">
-          {post.topic}
-        </p>
+        <div className="mb-3 flex flex-wrap gap-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-blue-300">
+            {post.topic}
+          </p>
+
+          <p className="text-xs font-medium uppercase tracking-wide text-purple-300">
+            {post.mood}
+          </p>
+        </div>
 
         <h1 className="text-3xl font-bold text-white">{post.title}</h1>
 

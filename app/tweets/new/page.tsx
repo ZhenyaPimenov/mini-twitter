@@ -13,6 +13,7 @@ type NewTweetPageProps = {
 const MAX_TWEET_LENGTH = 280;
 const MAX_TITLE_LENGTH = 80;
 const TWEET_TOPICS = ["General", "Study", "News", "Project", "Personal"];
+const TWEET_MOODS = ["Neutral", "Happy", "Serious", "Question", "Excited"];
 
 const tweetErrors: Record<string, string> = {
   "empty-title": "Tweet title cannot be empty.",
@@ -20,6 +21,7 @@ const tweetErrors: Record<string, string> = {
   "empty-tweet": "Tweet content cannot be empty.",
   "long-tweet": `Tweets must be ${MAX_TWEET_LENGTH} characters or fewer.`,
   "invalid-topic": "Please choose a valid topic.",
+  "invalid-mood": "Please choose a valid mood.",
 };
 
 export default async function NewTweetPage({
@@ -45,6 +47,7 @@ export default async function NewTweetPage({
     const title = String(formData.get("title") ?? "").trim();
     const content = String(formData.get("content") ?? "").trim();
     const topic = String(formData.get("topic") ?? "").trim();
+    const mood = String(formData.get("mood") ?? "").trim();
 
     if (!title) {
       redirect("/tweets/new?error=empty-title");
@@ -66,11 +69,16 @@ export default async function NewTweetPage({
       redirect("/tweets/new?error=invalid-topic");
     }
 
+    if (!TWEET_MOODS.includes(mood)) {
+      redirect("/tweets/new?error=invalid-mood");
+    }
+
     const post = await prisma.post.create({
       data: {
         title,
         content,
         topic,
+        mood,
         userId: user.id,
       },
     });
@@ -145,6 +153,25 @@ export default async function NewTweetPage({
                 {TWEET_TOPICS.map((topic) => (
                   <option key={topic} value={topic}>
                     {topic}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="mood" className="mb-2 block text-sm font-medium">
+                Mood
+              </label>
+
+              <select
+                id="mood"
+                name="mood"
+                defaultValue="Neutral"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-blue-500"
+              >
+                {TWEET_MOODS.map((mood) => (
+                  <option key={mood} value={mood}>
+                    {mood}
                   </option>
                 ))}
               </select>

@@ -241,6 +241,10 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
                   {post.topic}
                 </p>
 
+                <p className="text-xs font-medium uppercase tracking-wide text-purple-300">
+                  {post.mood}
+                </p>
+
                 <p className="text-xs text-gray-500">
                   {post._count.likes} likes
                 </p>

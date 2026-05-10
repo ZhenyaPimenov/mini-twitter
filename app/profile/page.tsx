@@ -120,9 +120,15 @@ export default async function ProfilePage() {
                 key={post.id}
                 className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
               >
-                <p className="text-xs font-medium uppercase tracking-wide text-blue-300">
-                  {post.topic}
-                </p>
+                <div className="flex flex-wrap gap-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-blue-300">
+                    {post.topic}
+                  </p>
+
+                  <p className="text-xs font-medium uppercase tracking-wide text-purple-300">
+                    {post.mood}
+                  </p>
+                </div>
 
                 <h3 className="mt-2 text-lg font-semibold text-white">
                   {post.title}

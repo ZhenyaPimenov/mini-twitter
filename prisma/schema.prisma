@@ -23,6 +23,7 @@ model Post {
   title     String   @default("Untitled tweet")
   content   String
   topic     String   @default("General")
+  mood      String   @default("Neutral")
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
