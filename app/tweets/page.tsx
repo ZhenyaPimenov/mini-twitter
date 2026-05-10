@@ -61,41 +61,6 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
     redirect("/tweets?success=created");
   }
 
-  async function updatePost(formData: FormData) {
-    "use server";
-
-    if (!currentUser) {
-      redirect("/login");
-    }
-
-    const postId = Number(formData.get("postId"));
-    const content = String(formData.get("content") ?? "").trim();
-
-    if (!postId) return;
-
-    if (!content) {
-      redirect("/tweets?error=empty-tweet");
-    }
-
-    if (content.length > MAX_TWEET_LENGTH) {
-      redirect("/tweets?error=long-tweet");
-    }
-
-    await prisma.post.update({
-      where: {
-        id: postId,
-        userId: currentUser.id,
-      },
-      data: {
-        content,
-      },
-    });
-
-    revalidatePath("/tweets");
-    revalidatePath(`/tweets/${postId}`);
-    redirect("/tweets?success=updated");
-  }
-
   async function deletePost(formData: FormData) {
     "use server";
 
@@ -269,24 +234,7 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
               key={post.id}
               className="border border-gray-700 bg-zinc-900 p-4 rounded-xl"
             >
-              {isOwner ? (
-                <form action={updatePost} className="space-y-2">
-                  <input type="hidden" name="postId" value={post.id} />
-
-                  <textarea
-                    name="content"
-                    defaultValue={post.content}
-                    maxLength={MAX_TWEET_LENGTH}
-                    className="w-full border border-gray-700 bg-zinc-800 text-white p-2 rounded"
-                  />
-
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Update
-                  </button>
-                </form>
-              ) : (
-                <p className="text-lg text-white">{post.content}</p>
-              )}
+              <p className="text-lg text-white">{post.content}</p>
 
               <p className="text-sm text-gray-400 mt-2">
                 Posted by {post.user.username ?? post.user.email} on{" "}
@@ -316,11 +264,20 @@ export default async function TweetsPage({ searchParams }: TweetsPageProps) {
                 )}
 
                 {isOwner && (
-                  <form action={deletePost}>
-                    <input type="hidden" name="postId" value={post.id} />
+                  <>
+                    <Link
+                      href={`/tweets/${post.id}/edit`}
+                      className="text-blue-400 hover:text-blue-300 text-sm"
+                    >
+                      Edit
+                    </Link>
 
-                    <DeleteTweetButton className="text-red-400 hover:text-red-300 text-sm" />
-                  </form>
+                    <form action={deletePost}>
+                      <input type="hidden" name="postId" value={post.id} />
+
+                      <DeleteTweetButton className="text-red-400 hover:text-red-300 text-sm" />
+                    </form>
+                  </>
                 )}
               </div>
             </div>
